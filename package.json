@@ -1,0 +1,17 @@
+{
+  "name": "coxinha",
+  "version": "1.0.0",
+  "description": "Command system for discord.js",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [
+    "discord.js"
+  ],
+  "author": "mat44",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^11.5.1",
+    "lodash.escaperegexp": "^4.1.2"
+  },
+  "devDependencies": {}
+}
