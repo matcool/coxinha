@@ -1,8 +1,9 @@
 {
   "name": "coxinha",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Command system for discord.js",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {},
   "keywords": [
     "discord.js"
@@ -13,5 +14,15 @@
     "discord.js": "^11.5.1",
     "lodash.escaperegexp": "^4.1.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/node": "^12.7.8",
+    "typescript": "^3.6.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/matcool/coxinha.git"
+  },
+  "bugs": {
+    "url": "https://github.com/matcool/coxinha/issues"
+  }
 }

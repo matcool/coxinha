@@ -1,8 +1,10 @@
-const Discord = require('discord.js');
-const escapeRegExp = require('lodash.escaperegexp');
+import * as Discord from 'discord.js';
+import * as escapeRegExp from 'lodash.escaperegexp';
 
 class Bot extends Discord.Client {
-    constructor(prefix, options) {
+    prefix: string;
+    commands: Command[];
+    constructor(prefix: string, options: Discord.ClientOptions) {
         super(options);
         this.prefix = prefix;
         this.commands = []
@@ -15,9 +17,9 @@ class Bot extends Discord.Client {
             args: [
                 new Argument('command', {optional: true})
             ],
-            async func(ctx, command) {
-                if (command) {
-                    command = ctx.bot.getCommand(command);
+            async func(ctx: Context, commandName?: string) {
+                if (commandName) {
+                    let command = ctx.bot.getCommand(commandName);
                     if (!command) return await ctx.send('Command not found');
                     let embed = new Discord.RichEmbed({
                        title: `**${command.name}**`,
@@ -42,27 +44,35 @@ class Bot extends Discord.Client {
      * @param {string} command Command name to search for
      * @returns {Command}
      */
-    getCommand(command) {
+    getCommand(command: string): Command {
         for (let cmd of this.commands) {
             if (cmd.match(command)) return cmd;
         }
     }
-    addCommand(command) {
+    /**
+     * Adds command to internal command list
+     * @param {Command} command 
+     */
+    addCommand(command: Command) {
         if (this.getCommand(command.name))
             throw new Error('Command with same name already exists');
         this.commands.push(command);
     }
-    async processCommands(message) {
+    /**
+     * Looks for and executes command in given message
+     * @param {Discord.Message} message
+     */
+    async processCommands(message: Discord.Message): Promise<void> {
         if (!message.content.startsWith(this.prefix)) return;
 
         let pattern = new RegExp(escapeRegExp(this.prefix) + '(\\S+) ?((?:\\S+? ?)+)?');
         let match = message.content.match(pattern);
         if (match === null) return;
 
-        let command = match[1];
+        let commandName = match[1];
         let args = match[2];
 
-        command = this.getCommand(command);
+        let command = this.getCommand(commandName);
 
         let ctx = new Context(this, message, command);
 
@@ -76,19 +86,48 @@ class Bot extends Discord.Client {
 }
 
 class Context {
-    constructor(bot, message, command) {
+    bot: Bot;
+    message: Discord.Message;
+    command: Command;
+    author: Discord.User;
+    constructor(bot: Bot, message: Discord.Message, command: Command) {
         this.bot = bot;
         this.message = message;
         this.author = message.author;
         this.command = command;
     }
-    send(content, options) {
+    /**
+     * Shorthand for message.channel.send
+     * @param content Text for the message
+     * @param options Options for the message, can also be just a RichEmbed or Attachment
+     */
+    send(content?: Discord.StringResolvable, options?: Discord.MessageOptions | Discord.Attachment | Discord.RichEmbed): Promise<(Discord.Message|Array<Discord.Message>)> {
         return this.message.channel.send(content, options);
     }
 }
 
+type CommandFunction = (ctx: Context, ...args: any[]) => any;
+
+interface CommandOptions {
+    name: string;
+    aliases?: string[];
+    func: CommandFunction;
+    args?: Argument[];
+    help?: string;
+    hidden?: boolean;
+}
+
 class Command {
-    constructor(options) {
+    name: string;
+    function: CommandFunction;
+    args: Argument[];
+    help: string;
+    hidden: boolean;
+    aliases: string[];
+    // Private as they should only be used inside the command
+    private required: number;
+    private hasCombined: boolean
+    constructor(options: CommandOptions) {
         let defaults = {
             args: [],
             help: null,
@@ -102,6 +141,7 @@ class Command {
         this.args = options.args;
         this.help = options.help;
         this.hidden = options.hidden;
+        this.aliases = options.aliases || [];
 
         let hadOptional = false;
         this.required = 0;
@@ -120,10 +160,14 @@ class Command {
                 this.required++;
         }
 
-        this.aliases = options.aliases || [];
     }
-    async run(ctx, args) {
-        args = args ? args.split(' ') : [];
+    /**
+     * Run command in given context and raw arguments
+     * @param {Context} ctx Context to run the command in
+     * @param {string} [argStr] Raw arguments
+     */
+    async run(ctx: Context, argStr?: string): Promise<void> {
+        let args: string[] = argStr ? argStr.split(' ') : [];
         if (args.length < this.required) {
             let missing = this.args[args.length];
             await ctx.send(`Argument ${missing.name} is missing.`);
@@ -135,10 +179,15 @@ class Command {
         try {
             await this.function(ctx, ...args);
         } catch (err) {
-            console.err(err);
+            console.log(err);
         }
     }
-    get syntax() {
+    /**
+     * Syntax made of command's arguments
+     * @type {string}
+     * @readonly
+     */
+    get syntax(): string {
         return `${this.name} ${this.args.map(arg => arg.syntax).join(' ')}`.trimRight();
     }
     /**
@@ -147,13 +196,21 @@ class Command {
      * @param {string} name Name to match
      * @returns {boolean}
      */
-    match(name) {
+    match(name: string): boolean {
         return name == this.name || this.aliases.includes(name);
     }
 }
 
+interface ArgumentOptions {
+    optional?: boolean;
+    combined?: boolean;
+}
+
 class Argument {
-    constructor(name, options) {
+    name: string;
+    optional: boolean;
+    combined: boolean;
+    constructor(name: string, options: ArgumentOptions) {
         this.name = name;
         let defaults = {
             optional: false,
@@ -164,17 +221,17 @@ class Argument {
         this.combined = options.combined;
     }
     /**
-     * Returns a syntax thats used in the help command
-     * <name> means its required
-     * \[name] means its optional
+     * Syntax thats used in the help command \
+     * <name> means its required \
+     * \[name] means its optional \
      * name... means its combined
-     * @returns {string}
+     * @type {string}
+     * @readonly
      */
-    get syntax() {
+    get syntax(): string {
         let type = this.optional ? '[{}]' : '<{}>';
         let name = this.name + (this.combined ? '...' : '')
         return type.replace('{}', name);
     }
 }
-
-module.exports = { Bot, Command, Argument, Context };
+export { Bot, Command, Argument, Context };

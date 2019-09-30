@@ -1,7 +1,7 @@
 # Coxinha
 Basic command system for discord.js
 
-Sample bot in index.js
+Sample bot in examples/
 # Example
 ```js
 const { Bot, Command, Argument } = require('./command');

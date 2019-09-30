@@ -1,4 +1,4 @@
-const { Bot, Command, Argument } = require('./command');
+const { Bot, Command, Argument } = require('../dist/command');
 
 const bot = new Bot('!');
 
