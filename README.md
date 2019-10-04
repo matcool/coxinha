@@ -1,10 +1,10 @@
 # Coxinha
-Basic command system for discord.js
+Basic command system for discord.js written in typescript
 
 Sample bot in examples/
 # Example
 ```js
-const { Bot, Command, Argument } = require('./command');
+const { Bot, Command, Argument } = require('coxinha');
 
 // ! is the prefix
 const bot = new Bot('!');
