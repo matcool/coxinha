@@ -1,5 +1,5 @@
 // When used as an library it wont have these ugly ../
-const { Command, Argument } = require('../../../dist/command');
+const { Command, Argument } = require('../../../dist/index');
 
 module.exports = (bot) => {
     const category = 'Extra';
