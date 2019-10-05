@@ -1,5 +1,6 @@
 import { Context } from './context';
 import { Argument } from './argument';
+import { Check } from './checks';
 
 type CommandFunction = (ctx: Context, ...args: any[]) => any;
 
@@ -11,6 +12,7 @@ interface CommandOptions {
     args?: Argument[];
     help?: string;
     hidden?: boolean;
+    checks?: Check[];
 }
 
 class Command {
@@ -21,6 +23,7 @@ class Command {
     hidden: boolean;
     aliases: string[];
     category: string;
+    checks: Check[];
     // Private as they should only be used inside the command
     private required: number;
     private hasCombined: boolean
@@ -28,7 +31,10 @@ class Command {
         let defaults = {
             args: [],
             help: null,
-            hidden: false
+            hidden: false,
+            category: 'default',
+            aliases: [],
+            checks: []
         }
         options = {...defaults, ...options};
 
@@ -37,9 +43,10 @@ class Command {
 
         this.args = options.args;
         this.help = options.help;
-        this.category = options.category || 'default';
+        this.category = options.category;
         this.hidden = options.hidden;
-        this.aliases = options.aliases || [];
+        this.aliases = options.aliases;
+        this.checks = options.checks;
 
         let hadOptional = false;
         this.required = 0;
@@ -65,6 +72,9 @@ class Command {
      * @param {string} [argStr] Raw arguments
      */
     async run(ctx: Context, argStr?: string): Promise<void> {
+        for (let check of this.checks) {
+            if (!await check(ctx)) return;
+        }
         let args: string[] = argStr ? argStr.split(' ') : [];
         if (args.length < this.required) {
             let missing = this.args[args.length];

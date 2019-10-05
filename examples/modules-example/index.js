@@ -1,4 +1,4 @@
-const { Bot, Command, Argument } = require('../../dist/index');
+const { Bot, Command, isOwner } = require('../../dist/index');
 const path = require('path');
 const fs = require('fs');
 
@@ -12,8 +12,13 @@ bot.on('ready', () => {
 
 bot.addCommand(new Command({
     name: 'kill',
+    hidden: true,
     help: 'End the bot\'s connection with discord',
+    checks: [
+        isOwner
+    ],
     async func(ctx) {
+        await ctx.send('Bye');
         await ctx.bot.destroy();
     }
 }));
@@ -21,6 +26,9 @@ bot.addCommand(new Command({
 bot.addCommand(new Command({
     name: 'reload',
     hidden: true,
+    checks: [
+        isOwner
+    ],
     async func(ctx) {
         fs.readdir(path.join(__dirname, 'modules'), (err, files) => {
             if (err) return console.log(err);
@@ -29,6 +37,7 @@ bot.addCommand(new Command({
                 ctx.bot.unloadModule(modulePath);
                 ctx.bot.loadModule(modulePath);
             }
+            ctx.send('reloaded');
         });
     }
 }))

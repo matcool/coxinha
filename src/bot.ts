@@ -19,6 +19,7 @@ class Bot extends Discord.Client {
     // This is used to store which file the command came from, which can be used for reloading
     commandsPaths: BotCommandsPaths;
     currentModule?: string;
+    private owner?: Discord.User;
     constructor(prefix: string, options: Discord.ClientOptions) {
         super(options);
         this.prefix = prefix;
@@ -58,6 +59,7 @@ class Bot extends Discord.Client {
                 }
             }
         }));
+        this.owner = null;
     }
     * walkCommands(): IterableIterator<Command> {
         for (let categoryCmds of Object.values(this.commands)) {
@@ -143,6 +145,14 @@ class Bot extends Discord.Client {
             }
         }
         delete this.commandsPaths[modulePath];
+    }
+    async getOwner(): Promise<Discord.User> {
+        if (this.owner) return this.owner;
+        else {
+            const app = await this.fetchApplication();
+            this.owner = app.owner;
+            return this.owner;
+        }
     }
 }
 
