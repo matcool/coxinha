@@ -26,7 +26,8 @@ bot.addCommand(new Command({
     name: 'say',
     help: 'Sends given message',
     args: [
-        new Argument('message')
+        // Combined means it'll be multiple words
+        new Argument('message', {combined: true})
     ],
     async func(ctx, msg) {
         await ctx.send(msg);
