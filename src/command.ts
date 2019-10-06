@@ -19,7 +19,7 @@ class Command {
     name: string;
     function: CommandFunction;
     args: Argument[];
-    help: string;
+    help?: string;
     hidden: boolean;
     aliases: string[];
     category: string;
@@ -84,8 +84,17 @@ class Command {
         if (this.hasCombined && args.length >= this.args.length) {
             args = [...args.slice(0, this.args.length - 1), args.slice(this.args.length - 1).join(' ')];
         }
+
+        let convertedArgs = [];
+
+        for (let i = 0; i < args.length; i++) {
+            let arg = args[i];
+            let converter = this.args[i].converter
+            convertedArgs.push(converter ? await converter(arg, ctx) : arg);
+        }
+
         try {
-            await this.function(ctx, ...args);
+            await this.function(ctx, ...convertedArgs);
         } catch (err) {
             console.log(err);
         }
