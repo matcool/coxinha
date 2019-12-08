@@ -19,6 +19,7 @@ interface BotOptions extends Discord.ClientOptions {
     helpCommand?: boolean // toggles the default help command. default - true
     helpColor?: number // color to use in the default help command. default - #2bc0ce
     defaultCategoryName?: string; // name to use in the default category. default - 'default'
+    mentionPrefix?: boolean; // whether to have mentioning the bot as a prefix. default - true
 }
 
 class Bot extends Discord.Client {
@@ -30,6 +31,7 @@ class Bot extends Discord.Client {
     private owner?: string; // bot's owner id
     private commandNotFound: boolean;
     private defaultCategoryName: string;
+    private mentionPrefix: boolean;
     constructor(prefix: string, options?: BotOptions) {
         options = options || {};
         super(options);
@@ -40,6 +42,7 @@ class Bot extends Discord.Client {
         this.owner = options.ownerId;
         this.commandNotFound = options.commandNotFound || false;
         this.defaultCategoryName = options.defaultCategoryName || 'default';
+        this.mentionPrefix = options.mentionPrefix === undefined ? true : options.mentionPrefix;
         this.on('message', async message => {
             await this.processCommands(message);
         });
@@ -120,9 +123,10 @@ class Bot extends Discord.Client {
      * @param {Discord.Message} message
      */
     async processCommands(message: Discord.Message): Promise<void> {
-        if (!message.content.startsWith(this.prefix)) return;
-
-        let pattern = new RegExp(escapeRegExp(this.prefix) + '(\\S+) ?((?:\\S+? ?)+)?');
+        if (!message.content.startsWith(this.prefix) && !this.mentionPrefix) return;
+        
+        let mentions = this.mentionPrefix ? `|<@${this.user.id}>|<@!${this.user.id}>` : '';
+        let pattern = new RegExp(`(?:${escapeRegExp(this.prefix)}${mentions})(\\S+) ?((?:\\S+? ?)+)?`);
         let match = message.content.match(pattern);
         if (match === null) return;
 
