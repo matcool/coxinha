@@ -18,6 +18,7 @@ interface BotOptions extends Discord.ClientOptions {
     ownerId?: string; // id of the bot's owner, used in the isOwner check. default - null, which makes it get from fetchApplication (can fail if for example the bot is on a team)
     helpCommand?: boolean // toggles the default help command. default - true
     helpColor?: number // color to use in the default help command. default - #2bc0ce
+    defaultCategoryName?: string; // name to use in the default category. default - 'default'
 }
 
 class Bot extends Discord.Client {
@@ -28,15 +29,17 @@ class Bot extends Discord.Client {
     currentModule?: string;
     private owner?: string; // bot's owner id
     private commandNotFound: boolean;
+    private defaultCategoryName: string;
     constructor(prefix: string, options?: BotOptions) {
         options = options || {};
         super(options);
-        this.commandNotFound = options.commandNotFound || false;
-        this.owner = options.ownerId;
         this.prefix = prefix;
         this.commands = {};
         this.commandsPaths = {};
         this.currentModule = null;
+        this.owner = options.ownerId;
+        this.commandNotFound = options.commandNotFound || false;
+        this.defaultCategoryName = options.defaultCategoryName || 'default';
         this.on('message', async message => {
             await this.processCommands(message);
         });
@@ -102,8 +105,10 @@ class Bot extends Discord.Client {
         if (this.getCommand(command.name))
             throw new Error('Command with same name already exists');
 
-        if (!has(this.commands, command.category)) this.commands[command.category] = [];
-        this.commands[command.category].push(command);
+        const category = command.category || this.defaultCategoryName;
+
+        if (!has(this.commands, category)) this.commands[category] = [];
+        this.commands[category].push(command);
 
         if (file) {
             if (!has(this.commandsPaths, file)) this.commandsPaths[file] = [];

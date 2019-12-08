@@ -32,7 +32,7 @@ class Command {
             args: [],
             help: null,
             hidden: false,
-            category: 'default',
+            category: null,
             aliases: [],
             checks: []
         }
