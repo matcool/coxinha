@@ -16,6 +16,8 @@ interface BotCommandsPaths {
 interface BotOptions extends Discord.ClientOptions {
     commandNotFound?: boolean; // disables whether to send 'Command not found'. default - false
     ownerId?: string; // id of the bot's owner, used in the isOwner check. default - null, which makes it get from fetchApplication (can fail if for example the bot is on a team)
+    helpCommand?: boolean // toggles the default help command. default - true
+    helpColor?: number // color to use in the default help command. default - #2bc0ce
 }
 
 class Bot extends Discord.Client {
@@ -26,7 +28,8 @@ class Bot extends Discord.Client {
     currentModule?: string;
     private owner?: string; // bot's owner id
     private commandNotFound: boolean;
-    constructor(prefix: string, options: BotOptions) {
+    constructor(prefix: string, options?: BotOptions) {
+        options = options || {};
         super(options);
         this.commandNotFound = options.commandNotFound || false;
         this.owner = options.ownerId;
@@ -37,36 +40,41 @@ class Bot extends Discord.Client {
         this.on('message', async message => {
             await this.processCommands(message);
         });
-        this.addCommand(new Command({
-            name: 'help',
-            help: 'Lists all commands or shows help for given command',
-            args: [
-                new Argument('command', {optional: true})
-            ],
-            async func(ctx: Context, commandName?: string) {
-                if (commandName) {
-                    let command = ctx.bot.getCommand(commandName);
-                    if (!command) return await ctx.send('Command not found');
-                    let embed = new Discord.RichEmbed({
-                       title: `**${command.name}**`,
-                       color: 0x2bc0ce,
-                       description: command.help
-                    })
-                    .addField('Syntax', '`' + ctx.bot.prefix + command.syntax + '`', true);
-                    if (command.aliases.length > 0) embed.addField('Aliases', command.aliases.map(name => '`'+name+'`').join(' '), true);
-                    await ctx.send(embed);
-                } else {
-                    let embed = new Discord.RichEmbed({
-                        title: '**Commands**',
-                        color: 0x2bc0ce
-                    });
-                    for (let categoryName in ctx.bot.commands) {
-                        embed.addField(categoryName, ctx.bot.commands[categoryName].filter(cmd => !cmd.hidden).map(cmd => '`' + cmd.name + '`').join(' '));
+        // just doing (options.helpCommand || true) would make it always return true
+        // as options.helpCommand can be either true, false or undefined
+        if (options.helpCommand === undefined ? true : options.helpCommand) {
+            this.addCommand(new Command({
+                name: 'help',
+                help: 'Lists all commands or shows help for given command',
+                args: [
+                    new Argument('command', {optional: true})
+                ],
+                async func(ctx: Context, commandName?: string) {
+                    let color = options.helpColor || 0x2bc0ce;
+                    if (commandName) {
+                        let command = ctx.bot.getCommand(commandName);
+                        if (!command) return await ctx.send('Command not found');
+                        let embed = new Discord.RichEmbed({
+                        title: `**${command.name}**`,
+                        color,
+                        description: command.help
+                        })
+                        .addField('Syntax', '`' + ctx.bot.prefix + command.syntax + '`', true);
+                        if (command.aliases.length > 0) embed.addField('Aliases', command.aliases.map(name => '`'+name+'`').join(' '), true);
+                        await ctx.send(embed);
+                    } else {
+                        let embed = new Discord.RichEmbed({
+                            title: '**Commands**',
+                            color
+                        });
+                        for (let categoryName in ctx.bot.commands) {
+                            embed.addField(categoryName, ctx.bot.commands[categoryName].filter(cmd => !cmd.hidden).map(cmd => '`' + cmd.name + '`').join(' '));
+                        }
+                        await ctx.send(embed);
                     }
-                    await ctx.send(embed);
                 }
-            }
-        }));
+            }));
+        }
     }
     * walkCommands(): IterableIterator<Command> {
         for (let categoryCmds of Object.values(this.commands)) {
