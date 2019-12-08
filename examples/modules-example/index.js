@@ -3,7 +3,8 @@ const path = require('path');
 const fs = require('fs');
 
 const bot = new Bot('js!', {
-    disableEveryone: true
+    disableEveryone: true,
+    commandNotFound: true
 });
 
 bot.on('ready', () => {

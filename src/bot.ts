@@ -13,15 +13,23 @@ interface BotCommandsPaths {
     [path: string]: Command[]
 }
 
+interface BotOptions extends Discord.ClientOptions {
+    commandNotFound?: boolean; // disables whether to send 'Command not found'. default - false
+    ownerId?: string; // id of the bot's owner, used in the isOwner check. default - null, which makes it get from fetchApplication (can fail if for example the bot is on a team)
+}
+
 class Bot extends Discord.Client {
     prefix: string;
     commands: BotCommands;
     // This is used to store which file the command came from, which can be used for reloading
     commandsPaths: BotCommandsPaths;
     currentModule?: string;
-    private owner?: Discord.User;
-    constructor(prefix: string, options: Discord.ClientOptions) {
+    private owner?: string; // bot's owner id
+    private commandNotFound: boolean;
+    constructor(prefix: string, options: BotOptions) {
         super(options);
+        this.commandNotFound = options.commandNotFound || false;
+        this.owner = options.ownerId;
         this.prefix = prefix;
         this.commands = {};
         this.commandsPaths = {};
@@ -59,7 +67,6 @@ class Bot extends Discord.Client {
                 }
             }
         }));
-        this.owner = null;
     }
     * walkCommands(): IterableIterator<Command> {
         for (let categoryCmds of Object.values(this.commands)) {
@@ -114,7 +121,7 @@ class Bot extends Discord.Client {
         let ctx = new Context(this, message, command);
 
         if (!command) {
-            await ctx.send('Command not found');
+            if (this.commandNotFound) await ctx.send('Command not found');
             return;
         }
 
@@ -146,11 +153,11 @@ class Bot extends Discord.Client {
         }
         delete this.commandsPaths[modulePath];
     }
-    async getOwner(): Promise<Discord.User> {
+    async getOwner(): Promise<string> {
         if (this.owner) return this.owner;
         else {
             const app = await this.fetchApplication();
-            this.owner = app.owner;
+            this.owner = app.owner.id;
             return this.owner;
         }
     }

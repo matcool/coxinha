@@ -4,7 +4,7 @@ type Check = (ctx: Context) => Promise<boolean> | boolean;
 
 const isOwner: Check = async ctx => {
     let owner = await ctx.bot.getOwner();
-    return ctx.author.id === owner.id;
+    return ctx.author.id === owner;
 };
 
 function invert(check: Check): Check {
