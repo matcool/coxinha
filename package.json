@@ -1,6 +1,6 @@
 {
   "name": "coxinha",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Command system for discord.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,7 +13,7 @@
   "author": "mat44",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^11.5.1",
+    "discord.js": "^12.2.0",
     "lodash.escaperegexp": "^4.1.2",
     "lodash.has": "^4.5.2"
   },
