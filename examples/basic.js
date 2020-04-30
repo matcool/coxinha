@@ -1,4 +1,5 @@
-const { Bot, Command, Argument } = require('../dist/index');
+const { Bot, Command, Argument, Paginator } = require('../dist/index');
+const Discord = require('discord.js');
 
 const bot = new Bot('!');
 
@@ -30,6 +31,21 @@ bot.addCommand(new Command({
     help: 'Sends "Pong!"',
     async func(ctx) {
         await ctx.send('Pong!');
+    }
+}));
+
+bot.addCommand(new Command({
+    name: 'numbers',
+    help: 'Paginator test',
+    async func(ctx) {
+        function getPage(i) {
+            const embed = new Discord.MessageEmbed()
+                .setDescription(`You are currently on ${i + 1}! Congratulations.`)
+                .setFooter(`Page ${i + 1}/10`);
+            return embed;
+        }
+        let pag = new Paginator(getPage, 10, {idle: 10000});
+        await pag.start(ctx);
     }
 }));
 
