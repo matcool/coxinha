@@ -4,5 +4,5 @@ export * from './context';
 export * from './command';
 export * from './checks';
 export * from './converters';
-export * from './Paginator';
+export * from './paginator';
 export const version = require('../package.json').version;
