@@ -125,8 +125,8 @@ class Bot extends Discord.Client {
     async processCommands(message: Discord.Message): Promise<void> {
         if (!message.content.startsWith(this.prefix) && !this.mentionPrefix) return;
         
-        let mentions = this.mentionPrefix ? `|<@${this.user.id}>|<@!${this.user.id}>` : '';
-        let pattern = new RegExp(`^(?:${escapeRegExp(this.prefix)}${mentions})(\\S+) ?((?:\\S+? ?)+)?`);
+        let mentions = this.mentionPrefix ? `|(?:<@${this.user.id}>|<@!${this.user.id}>) ?` : '';
+        let pattern = new RegExp(`^(?:${escapeRegExp(this.prefix)}${mentions})(\\S+)(?: +)?((?:\\S+(?: +)?)+)?`);
         let match = message.content.match(pattern);
         if (match === null) return;
 
