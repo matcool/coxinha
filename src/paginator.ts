@@ -5,8 +5,10 @@ interface PaginatorOptions extends Discord.ReactionCollectorOptions {
     buttons?: 'simple' | 'all';
     startingPage?: number;
     deleteMessage?: boolean;
+    removeEmbed?: boolean;
     clearReactions?: boolean;
     removeReaction?: boolean;
+    pressOnRemove?: boolean;
 }
 
 interface Button {
@@ -29,9 +31,11 @@ class Paginator {
         let defaultOptions: PaginatorOptions = {
             buttons: 'simple',
             startingPage: 0,
-            deleteMessage: false,
+            deleteMessage: true,
+            removeEmbed: false,
             clearReactions: true,
-            removeReaction: true
+            removeReaction: false,
+            pressOnRemove: true
         };
         if (!options) {
             options = defaultOptions;
@@ -39,6 +43,9 @@ class Paginator {
             options = {...defaultOptions, ...options};
         }
         this.options = options;
+        if (this.options.pressOnRemove) {
+            this.options.dispose = true;
+        }
         this.currentPage = options.startingPage; 
         this.buttons = [
             { name: '◀️', onClick(parent) {
@@ -94,19 +101,28 @@ class Paginator {
             }
         }
         this.collector.on('collect', listener);
+        if (this.options.pressOnRemove) {
+            this.collector.on('remove', listener);
+        }
         this.collector.on('end', async () => {
-            await this.stop();
+            await this.stop(true);
         })
     }
-    async stop() {
-        if (!this.collector.ended) {
-            this.collector.stop();
-            if (this.options.deleteMessage) {
+    async stop(idle: boolean=false) {
+        if (!this.collector.ended || idle) {
+            if (!idle) this.collector.stop();
+            if (!idle && this.options.deleteMessage) {
                 await this.message.delete();
-            } else if (this.options.clearReactions) {
-                try {
-                    await this.message.reactions.removeAll();
-                } catch (DiscordAPIError) {}
+            } else {
+                if (!idle && this.options.removeEmbed) {
+                    // send '_ _' instead of nothing since discord really hates empty messages
+                    await this.message.edit('_ _', {embed: null});
+                }
+                if (this.options.clearReactions) {
+                    try {
+                        await this.message.reactions.removeAll();
+                    } catch (DiscordAPIError) {}
+                }
             }
         }
     }
