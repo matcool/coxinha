@@ -80,7 +80,7 @@ class Paginator {
         }
     }
     async start(ctx: Context) {
-        this.message = await ctx.send(this.getPage(this.currentPage)) as Discord.Message;
+        this.message = await ctx.send({ embed: this.getPage(this.currentPage) }) as Discord.Message;
         for (let button of this.buttons) {
             await this.message.react(button.name);
         }
@@ -92,7 +92,7 @@ class Paginator {
             if (user.id !== ctx.author.id) return;
             const button = this.buttons.find(button => button.name === reaction.emoji.name);
             if (await button.onClick(this)) {
-                await this.message.edit(this.getPage(this.currentPage));
+                await this.message.edit({ embed: this.getPage(this.currentPage) });
             }
             if (this.options.removeReaction) {
                 try {
