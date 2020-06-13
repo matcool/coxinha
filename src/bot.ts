@@ -4,6 +4,7 @@ import * as has from 'lodash.has';
 import { Command } from './command';
 import { Argument } from './argument';
 import { Context } from './context';
+import { Check } from './checks';
 
 interface BotCommands {
     [categoryName: string]: Command[]
@@ -32,6 +33,7 @@ class Bot extends Discord.Client {
     private commandNotFound: boolean;
     private defaultCategoryName: string;
     private mentionPrefix: boolean;
+    private globalCheck?: Check;
     constructor(prefix: string, options?: BotOptions) {
         options = options || {};
         super(options);
@@ -141,6 +143,10 @@ class Bot extends Discord.Client {
             if (this.commandNotFound) await ctx.send('Command not found');
             return;
         }
+        
+        if (this.globalCheck) {
+            if (!await this.globalCheck(ctx)) return;
+        }
 
         command.run(ctx, args);
     }
@@ -177,6 +183,9 @@ class Bot extends Discord.Client {
             this.owner = app.owner.id;
             return this.owner;
         }
+    }
+    setGlobalCheck(check?: Check) {
+        this.globalCheck = check;
     }
 }
 

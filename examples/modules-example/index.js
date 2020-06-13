@@ -1,4 +1,4 @@
-const { Bot, Command, isOwner } = require('../../dist/index');
+const { Bot, Command, Checks } = require('../../dist/index');
 const path = require('path');
 const fs = require('fs');
 
@@ -16,7 +16,7 @@ bot.addCommand(new Command({
     hidden: true,
     help: 'End the bot\'s connection with discord',
     checks: [
-        isOwner
+        Checks.isOwner
     ],
     async func(ctx) {
         await ctx.send('Bye');
@@ -28,7 +28,7 @@ bot.addCommand(new Command({
     name: 'reload',
     hidden: true,
     checks: [
-        isOwner
+        Checks.isOwner
     ],
     async func(ctx) {
         fs.readdir(path.join(__dirname, 'modules'), (err, files) => {
