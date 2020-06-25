@@ -126,6 +126,9 @@ class Paginator {
             }
         }
     }
+    addButton(button: Button) {
+        this.buttons.push(button);
+    }
 }
 
 export { Paginator };
