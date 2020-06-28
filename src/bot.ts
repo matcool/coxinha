@@ -128,7 +128,7 @@ class Bot extends Discord.Client {
         if (!message.content.startsWith(this.prefix) && !this.mentionPrefix) return;
         
         let mentions = this.mentionPrefix ? `|(?:<@${this.user.id}>|<@!${this.user.id}>) ?` : '';
-        let pattern = new RegExp(`^(?:${escapeRegExp(this.prefix)}${mentions})(\\S+)(?: +)?((?:\\S+(?: +)?)+)?`);
+        let pattern = new RegExp(`^(?:${escapeRegExp(this.prefix)}${mentions})(\\S+)(?: +)?((?:\\S+(?:(?: |\\n)+)?)+)?`);
         let match = message.content.match(pattern);
         if (match === null) return;
 

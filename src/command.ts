@@ -75,14 +75,18 @@ class Command {
         for (let check of this.checks) {
             if (!await check(ctx)) return;
         }
-        let args: string[] = argStr ? argStr.split(' ') : [];
+        let args: string[] = argStr ? argStr.split(/ |\n/g) : [];
         if (args.length < this.required) {
             let missing = this.args[args.length];
             await ctx.send(`Argument ${missing.name} is missing.`);
             return;
         }
         if (this.hasCombined && args.length >= this.args.length) {
-            args = [...args.slice(0, this.args.length - 1), args.slice(this.args.length - 1).join(' ')];
+            if (this.args.length === 1) {
+                args = [argStr];
+            } else {
+                args = [...args.slice(0, this.args.length - 1), argStr.substring(args.slice(0, this.args.length - 1).join(' ').length + 1)];
+            }
         }
 
         let convertedArgs = [];

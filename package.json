@@ -1,6 +1,6 @@
 {
   "name": "coxinha",
-  "version": "2.9.1",
+  "version": "2.9.2",
   "description": "Command system for discord.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
