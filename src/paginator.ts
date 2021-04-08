@@ -1,7 +1,7 @@
-import * as Discord from 'discord.js';
+import { Message, MessageEmbed, MessageReaction, ReactionCollector, ReactionCollectorOptions, User } from 'discord.js';
 import { Context } from './context';
 
-interface PaginatorOptions extends Discord.ReactionCollectorOptions {
+interface PaginatorOptions extends ReactionCollectorOptions {
     buttons?: 'simple' | 'all';
     startingPage?: number;
     deleteMessage?: boolean;
@@ -17,15 +17,15 @@ interface Button {
 }
 
 class Paginator {
-    getPage: (i: number) => Discord.MessageEmbed;
+    getPage: (i: number) => MessageEmbed;
     pageCount: number;
     currentPage: number;
     private options: PaginatorOptions;
     private buttons: Button[];
-    private message: Discord.Message;
-    private check: (reaction: Discord.MessageReaction, user: Discord.User) => boolean;
-    private collector: Discord.ReactionCollector;
-    constructor(getPage: (i: number) => Discord.MessageEmbed, pageCount: number, options?: PaginatorOptions) {
+    private message: Message;
+    private check: (reaction: MessageReaction, user: User) => boolean;
+    private collector: ReactionCollector;
+    constructor(getPage: (i: number) => MessageEmbed, pageCount: number, options?: PaginatorOptions) {
         this.getPage = getPage;
         this.pageCount = pageCount;
         let defaultOptions: PaginatorOptions = {
@@ -80,7 +80,7 @@ class Paginator {
         }
     }
     async start(ctx: Context) {
-        this.message = await ctx.send({ embed: await this.getPage(this.currentPage) }) as Discord.Message;
+        this.message = await ctx.send({ embed: await this.getPage(this.currentPage) }) as Message;
         for (let button of this.buttons) {
             await this.message.react(button.name);
         }
@@ -88,7 +88,7 @@ class Paginator {
             return user.id == ctx.author.id && this.buttons.some(button => reaction.emoji.name === button.name);
         };
         this.collector = this.message.createReactionCollector(this.check, this.options);
-        const listener = async (reaction: Discord.MessageReaction, user: Discord.User) => {
+        const listener = async (reaction: MessageReaction, user: User) => {
             if (user.id !== ctx.author.id) return;
             const button = this.buttons.find(button => button.name === reaction.emoji.name);
             if (await button.onClick(this)) {

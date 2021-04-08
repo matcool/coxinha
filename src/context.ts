@@ -1,25 +1,20 @@
-import * as Discord from 'discord.js';
+import type { Message, User, TextChannel } from 'discord.js';
 import { Bot } from './bot';
 import { Command } from './command';
 
 class Context {
     bot: Bot;
-    message: Discord.Message;
+    message: Message;
     command: Command;
-    author: Discord.User;
-    constructor(bot: Bot, message: Discord.Message, command: Command) {
+    author: User;
+    public send: typeof TextChannel.prototype.send
+    constructor(bot: Bot, message: Message, command: Command) {
         this.bot = bot;
         this.message = message;
         this.author = message.author;
         this.command = command;
-    }
-    /**
-     * Shorthand for message.channel.send
-     * @param content Text for the message
-     * @param options Options for the message, can also be just a MessageEmbed or MessageAttachment
-     */
-    send: typeof Discord.TextChannel.prototype.send = function(content?, options?) {
-        return this.message.channel.send(content, options);
+
+        this.send = this.message.channel.send.bind(this.message.channel);
     }
 }
 

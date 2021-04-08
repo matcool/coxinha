@@ -1,4 +1,4 @@
-import * as Discord from 'discord.js';
+import { ClientOptions, Client, Message, MessageEmbed } from 'discord.js';
 import * as escapeRegExp from 'lodash.escaperegexp';
 import * as has from 'lodash.has';
 import { Command } from './command';
@@ -14,7 +14,7 @@ interface BotCommandsPaths {
     [path: string]: Command[]
 }
 
-interface BotOptions extends Discord.ClientOptions {
+interface BotOptions extends ClientOptions {
     commandNotFound?: boolean; // disables whether to send 'Command not found'. default - false
     ownerId?: string; // id of the bot's owner, used in the isOwner check. default - null, which makes it get from fetchApplication (can fail if for example the bot is on a team)
     helpCommand?: boolean // toggles the default help command. default - true
@@ -23,7 +23,7 @@ interface BotOptions extends Discord.ClientOptions {
     mentionPrefix?: boolean; // whether to have mentioning the bot as a prefix. default - true
 }
 
-class Bot extends Discord.Client {
+class Bot extends Client {
     prefix: string;
     commands: BotCommands;
     // This is used to store which file the command came from, which can be used for reloading
@@ -62,7 +62,7 @@ class Bot extends Discord.Client {
                     if (commandName) {
                         let command = ctx.bot.getCommand(commandName);
                         if (!command) return await ctx.send('Command not found');
-                        let embed = new Discord.MessageEmbed({
+                        let embed = new MessageEmbed({
                         title: `**${command.name}**`,
                         color,
                         description: command.help
@@ -71,7 +71,7 @@ class Bot extends Discord.Client {
                         if (command.aliases.length > 0) embed.addField('Aliases', command.aliases.map(name => '`'+name+'`').join(' '), true);
                         await ctx.send(embed);
                     } else {
-                        let embed = new Discord.MessageEmbed({
+                        let embed = new MessageEmbed({
                             title: '**Commands**',
                             color
                         });
@@ -122,9 +122,9 @@ class Bot extends Discord.Client {
     }
     /** 
      * Looks for and executes command in given message
-     * @param {Discord.Message} message
+     * @param {Message} message
      */
-    async processCommands(message: Discord.Message): Promise<void> {
+    async processCommands(message: Message): Promise<void> {
         if (!message.content.startsWith(this.prefix) && !this.mentionPrefix) return;
         
         let mentions = this.mentionPrefix ? `|(?:<@${this.user.id}>|<@!${this.user.id}>) ?` : '';
