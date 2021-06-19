@@ -1,19 +1,19 @@
-import { Message, MessageEmbed, MessageReaction, ReactionCollector, ReactionCollectorOptions, User } from 'discord.js';
+import { CollectorFilter, Message, MessageEmbed, MessageOptions } from 'discord.js';
 import { Context } from './context';
+import { AwaitMessageButtonOptions, ButtonCollector, ExtendedMessage, MessageActionRow, MessageButton, MessageComponent } from 'discord-buttons';
+import { nanoid } from 'nanoid';
 
-interface PaginatorOptions extends ReactionCollectorOptions {
+interface PaginatorOptions extends AwaitMessageButtonOptions {
     buttons?: 'simple' | 'all';
     startingPage?: number;
     deleteMessage?: boolean;
     removeEmbed?: boolean;
-    clearReactions?: boolean;
-    removeReaction?: boolean;
-    pressOnRemove?: boolean;
 }
 
 interface Button {
     name: string
     onClick: (parent: Paginator) => boolean | Promise<boolean>
+    id?: string
 }
 
 class Paginator {
@@ -23,8 +23,8 @@ class Paginator {
     private options: PaginatorOptions;
     private buttons: Button[];
     private message: Message;
-    private check: (reaction: MessageReaction, user: User) => boolean;
-    private collector: ReactionCollector;
+    private check: CollectorFilter;
+    private collector: ButtonCollector;
     constructor(getPage: (i: number) => MessageEmbed, pageCount: number, options?: PaginatorOptions) {
         this.getPage = getPage;
         this.pageCount = pageCount;
@@ -33,9 +33,6 @@ class Paginator {
             startingPage: 0,
             deleteMessage: true,
             removeEmbed: false,
-            clearReactions: true,
-            removeReaction: false,
-            pressOnRemove: true
         };
         if (!options) {
             options = defaultOptions;
@@ -43,21 +40,18 @@ class Paginator {
             options = {...defaultOptions, ...options};
         }
         this.options = options;
-        if (this.options.pressOnRemove) {
-            this.options.dispose = true;
-        }
         this.currentPage = options.startingPage; 
         this.buttons = [
-            { name: '◀️', onClick(parent) {
+            { name: '❮', onClick(parent) {
                 if (parent.currentPage === 0) return false;
                 parent.currentPage--;
                 return true;
             }},
-            { name: '⏹️', async onClick(parent) {
+            { name: '⯀', async onClick(parent) {
                 await parent.stop();
                 return false;
             }},
-            { name: '▶️', onClick(parent) {
+            { name: '❯', onClick(parent) {
                 if (parent.currentPage === parent.pageCount - 1) return false;
                 parent.currentPage++;
                 return true;
@@ -80,35 +74,31 @@ class Paginator {
         }
     }
     async start(ctx: Context) {
-        this.message = await ctx.send({ embed: await this.getPage(this.currentPage) }) as Message;
+        let row = new MessageActionRow();
         for (let button of this.buttons) {
-            await this.message.react(button.name);
+            let mbutton = new MessageButton().setLabel(button.name).setID(nanoid()).setStyle('blurple' as any);
+            button.id = mbutton.custom_id;
+            row.addComponent(mbutton);
         }
-        this.check = (reaction, user) => {
-            return user.id == ctx.author.id && this.buttons.some(button => reaction.emoji.name === button.name);
+        this.message = await ctx.send({ embed: await this.getPage(this.currentPage), component: row } as MessageOptions) as Message;
+        this.check = (button: MessageComponent) => {
+            return button.clicker.user.id == ctx.author.id;
         };
-        this.collector = this.message.createReactionCollector(this.check, this.options);
-        const listener = async (reaction: MessageReaction, user: User) => {
-            if (user.id !== ctx.author.id) return;
-            const button = this.buttons.find(button => button.name === reaction.emoji.name);
+        this.collector = (this.message as ExtendedMessage).createButtonCollector(this.check, this.options);
+        const listener = async (mbutton: MessageComponent) => {
+            if (mbutton.clicker.user.id !== ctx.author.id) return;
+            const button = this.buttons.find(button => button.id === mbutton.id);
             if (await button.onClick(this)) {
-                await this.message.edit({ embed: await this.getPage(this.currentPage) });
+                await this.message.edit({ embed: await this.getPage(this.currentPage), component: row } as MessageOptions);
             }
-            if (this.options.removeReaction) {
-                try {
-                    await reaction.users.remove(ctx.author);
-                } catch (DiscordAPIError) {}
-            }
+            mbutton.defer();
         }
         this.collector.on('collect', listener);
-        if (this.options.pressOnRemove) {
-            this.collector.on('remove', listener);
-        }
         this.collector.on('end', async () => {
             await this.stop(true);
         })
     }
-    async stop(idle: boolean=false) {
+    async stop(idle: boolean = false) {
         if (!this.collector.ended || idle) {
             if (!idle) this.collector.stop();
             if (!idle && this.options.deleteMessage) {
@@ -116,12 +106,9 @@ class Paginator {
             } else {
                 if (!idle && this.options.removeEmbed) {
                     // send '_ _' instead of nothing since discord really hates empty messages
-                    await this.message.edit('_ _', {embed: null});
-                }
-                if (this.options.clearReactions) {
-                    try {
-                        await this.message.reactions.removeAll();
-                    } catch (DiscordAPIError) {}
+                    await this.message.edit('_ _', {embed: null, component: null} as MessageOptions);
+                } else {
+                    await this.message.edit({embed: this.message.embeds[0], component: null} as MessageOptions);
                 }
             }
         }

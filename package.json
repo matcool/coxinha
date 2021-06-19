@@ -1,6 +1,6 @@
 {
   "name": "coxinha",
-  "version": "2.9.3",
+  "version": "2.10.0",
   "description": "Command system for discord.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,9 +13,11 @@
   "author": "mat44",
   "license": "MIT",
   "dependencies": {
+    "discord-buttons": "https://github.com/Unluckymichell/discord-buttons",
     "discord.js": "^12.5.3",
     "lodash.escaperegexp": "^4.1.2",
-    "lodash.has": "^4.5.2"
+    "lodash.has": "^4.5.2",
+    "nanoid": "^3.1.23"
   },
   "devDependencies": {
     "@types/node": "^12.7.8",

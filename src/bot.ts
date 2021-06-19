@@ -5,6 +5,7 @@ import { Command } from './command';
 import { Argument } from './argument';
 import { Context } from './context';
 import { Check } from './checks';
+import * as buttonsSetupFunc from 'discord-buttons';
 
 interface BotCommands {
     [categoryName: string]: Command[]
@@ -44,13 +45,13 @@ class Bot extends Client {
         this.owner = options.ownerId;
         this.commandNotFound = options.commandNotFound || false;
         this.defaultCategoryName = options.defaultCategoryName || 'default';
-        this.mentionPrefix = options.mentionPrefix === undefined ? true : options.mentionPrefix;
+        this.mentionPrefix = options.mentionPrefix ?? true;
         this.on('message', async message => {
             await this.processCommands(message);
         });
-        // just doing (options.helpCommand || true) would make it always return true
-        // as options.helpCommand can be either true, false or undefined
-        if (options.helpCommand === undefined ? true : options.helpCommand) {
+        // why
+        (buttonsSetupFunc as any)(this);
+        if (options.helpCommand ?? true) {
             this.addCommand(new Command({
                 name: 'help',
                 help: 'Lists all commands or shows help for given command',
