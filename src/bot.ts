@@ -1,11 +1,10 @@
-import { ClientOptions, Client, Message, MessageEmbed } from 'discord.js';
+import { ClientOptions, Client, Message, MessageEmbed, Intents } from 'discord.js';
 import * as escapeRegExp from 'lodash.escaperegexp';
 import * as has from 'lodash.has';
 import { Command } from './command';
 import { Argument } from './argument';
 import { Context } from './context';
 import { Check } from './checks';
-import * as buttonsSetupFunc from 'discord-buttons';
 
 interface BotCommands {
     [categoryName: string]: Command[]
@@ -36,21 +35,22 @@ class Bot extends Client {
     private mentionPrefix: boolean;
     private globalCheck?: Check;
     constructor(prefix: string, options?: BotOptions) {
-        options = options || {};
+        options = {
+            intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.DIRECT_MESSAGES],
+            ...(options ?? {})
+        };
         super(options);
         this.prefix = prefix;
         this.commands = {};
         this.commandsPaths = {};
         this.currentModule = null;
         this.owner = options.ownerId;
-        this.commandNotFound = options.commandNotFound || false;
-        this.defaultCategoryName = options.defaultCategoryName || 'default';
+        this.commandNotFound = options.commandNotFound ?? false;
+        this.defaultCategoryName = options.defaultCategoryName ?? 'default';
         this.mentionPrefix = options.mentionPrefix ?? true;
-        this.on('message', async message => {
+        this.on('messageCreate', async message => {
             await this.processCommands(message);
         });
-        // why
-        (buttonsSetupFunc as any)(this);
         if (options.helpCommand ?? true) {
             this.addCommand(new Command({
                 name: 'help',
@@ -70,7 +70,7 @@ class Bot extends Client {
                         })
                         .addField('Syntax', '`' + ctx.bot.prefix + command.syntax + '`', true);
                         if (command.aliases.length > 0) embed.addField('Aliases', command.aliases.map(name => '`'+name+'`').join(' '), true);
-                        await ctx.send(embed);
+                        await ctx.send({embeds: [embed]});
                     } else {
                         let embed = new MessageEmbed({
                             title: '**Commands**',
@@ -79,7 +79,7 @@ class Bot extends Client {
                         for (let categoryName in ctx.bot.commands) {
                             embed.addField(categoryName, ctx.bot.commands[categoryName].filter(cmd => !cmd.hidden).map(cmd => '`' + cmd.name + '`').join(' '));
                         }
-                        await ctx.send(embed);
+                        await ctx.send({embeds: [embed]});
                     }
                 }
             }));
@@ -180,8 +180,8 @@ class Bot extends Client {
     async getOwner(): Promise<string> {
         if (this.owner) return this.owner;
         else {
-            const app = await this.fetchApplication();
-            this.owner = app.owner.id;
+            await this.application.fetch();
+            this.owner = this.application.owner.id;
             return this.owner;
         }
     }

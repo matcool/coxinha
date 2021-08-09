@@ -13,8 +13,7 @@
   "author": "mat44",
   "license": "MIT",
   "dependencies": {
-    "discord-buttons": "https://github.com/Unluckymichell/discord-buttons",
-    "discord.js": "^12.5.3",
+    "discord.js": "^13.0.1",
     "lodash.escaperegexp": "^4.1.2",
     "lodash.has": "^4.5.2",
     "nanoid": "^3.1.23"

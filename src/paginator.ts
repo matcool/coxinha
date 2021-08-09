@@ -1,9 +1,8 @@
-import { CollectorFilter, Message, MessageEmbed, MessageOptions } from 'discord.js';
+import { CollectorFilter, InteractionCollector, InteractionCollectorOptions, Message, MessageActionRow, MessageButton, MessageComponentInteraction, MessageEmbed } from 'discord.js';
 import { Context } from './context';
-import { AwaitMessageButtonOptions, ButtonCollector, ExtendedMessage, MessageActionRow, MessageButton, MessageComponent } from 'discord-buttons';
 import { nanoid } from 'nanoid';
 
-interface PaginatorOptions extends AwaitMessageButtonOptions {
+interface PaginatorOptions extends InteractionCollectorOptions<MessageComponentInteraction> {
     buttons?: 'simple' | 'all';
     startingPage?: number;
     deleteMessage?: boolean;
@@ -23,8 +22,8 @@ class Paginator {
     private options: PaginatorOptions;
     private buttons: Button[];
     private message: Message;
-    private check: CollectorFilter;
-    private collector: ButtonCollector;
+    private check: CollectorFilter<MessageComponentInteraction[]>;
+    private collector: InteractionCollector<MessageComponentInteraction>;
     constructor(getPage: (i: number) => MessageEmbed, pageCount: number, options?: PaginatorOptions) {
         this.getPage = getPage;
         this.pageCount = pageCount;
@@ -76,26 +75,29 @@ class Paginator {
     async start(ctx: Context) {
         let row = new MessageActionRow();
         for (let button of this.buttons) {
-            let mbutton = new MessageButton().setLabel(button.name).setID(nanoid()).setStyle('blurple' as any);
-            button.id = mbutton.custom_id;
-            row.addComponent(mbutton);
+            let msgButton = new MessageButton().setLabel(button.name).setCustomId(nanoid()).setStyle('PRIMARY');
+            button.id = msgButton.customId;
+            row.addComponents(msgButton);
         }
-        this.message = await ctx.send({ embed: await this.getPage(this.currentPage), component: row } as MessageOptions) as Message;
-        this.check = (button: MessageComponent) => {
-            return button.clicker.user.id == ctx.author.id;
+        this.message = await ctx.send({ embeds: [await this.getPage(this.currentPage)], components: [row] });
+        this.check = (button: MessageComponentInteraction) => {
+            return button.isButton() && button.user.id === ctx.author.id;
         };
-        this.collector = (this.message as ExtendedMessage).createButtonCollector(this.check, this.options);
-        const listener = async (mbutton: MessageComponent) => {
-            if (mbutton.clicker.user.id !== ctx.author.id) return;
-            const button = this.buttons.find(button => button.id === mbutton.id);
+        this.collector = this.message.createMessageComponentCollector({
+            filter: this.check,
+            ...this.options
+        });
+        const listener = async (msgButton: MessageComponentInteraction) => {
+            const button = this.buttons.find(button => button.id === msgButton.customId);
             if (await button.onClick(this)) {
-                await this.message.edit({ embed: await this.getPage(this.currentPage), component: row } as MessageOptions);
+                await this.message.edit({ embeds: [await this.getPage(this.currentPage)], components: [row] });
             }
-            mbutton.defer();
+            await msgButton.deferUpdate();
         }
         this.collector.on('collect', listener);
-        this.collector.on('end', async () => {
-            await this.stop(true);
+        this.collector.on('end', async (_, reason) => {
+            if (reason === 'idle')
+                await this.stop(true);
         })
     }
     async stop(idle: boolean = false) {
@@ -106,9 +108,9 @@ class Paginator {
             } else {
                 if (!idle && this.options.removeEmbed) {
                     // send '_ _' instead of nothing since discord really hates empty messages
-                    await this.message.edit('_ _', {embed: null, component: null} as MessageOptions);
+                    await this.message.edit({ content: '_ _', embeds: [], components: [] });
                 } else {
-                    await this.message.edit({embed: this.message.embeds[0], component: null} as MessageOptions);
+                    await this.message.edit({ embeds: this.message.embeds, components: [] });
                 }
             }
         }
