@@ -1,4 +1,4 @@
-import { ClientOptions, Client, Message, MessageEmbed, Intents } from 'discord.js';
+import { ClientOptions, Client, Message, MessageEmbed, Intents, ApplicationCommandData, ApplicationCommand, Interaction } from 'discord.js';
 import * as escapeRegExp from 'lodash.escaperegexp';
 import * as has from 'lodash.has';
 import { Command } from './command';
@@ -23,12 +23,22 @@ interface BotOptions extends ClientOptions {
     mentionPrefix?: boolean; // whether to have mentioning the bot as a prefix. default - true
 }
 
+type SlashCommandFunction = (interaction: Interaction) => Promise<any>;
+
+interface SlashCommmands {
+    [name: string]: {
+        command: ApplicationCommand,
+        callback: SlashCommandFunction
+    }
+}
+
 class Bot extends Client {
     prefix: string;
     commands: BotCommands;
     // This is used to store which file the command came from, which can be used for reloading
     commandsPaths: BotCommandsPaths;
     currentModule?: string;
+    slashCommands: SlashCommmands;
     private owner?: string; // bot's owner id
     private commandNotFound: boolean;
     private defaultCategoryName: string;
@@ -44,6 +54,7 @@ class Bot extends Client {
         this.commands = {};
         this.commandsPaths = {};
         this.currentModule = null;
+        this.slashCommands = {};
         this.owner = options.ownerId;
         this.commandNotFound = options.commandNotFound ?? false;
         this.defaultCategoryName = options.defaultCategoryName ?? 'default';
@@ -84,6 +95,13 @@ class Bot extends Client {
                 }
             }));
         }
+        this.on('interactionCreate', async interaction => {
+            if (!interaction.isCommand()) return;
+            const command = this.slashCommands[interaction.commandName];
+            if (command) {
+                await command.callback(interaction);
+            }
+        });
     }
     * walkCommands(): IterableIterator<Command> {
         for (let categoryCmds of Object.values(this.commands)) {
@@ -97,10 +115,11 @@ class Bot extends Client {
      * @param {string} command Command name to search for
      * @returns {Command}
      */
-    getCommand(command: string): Command {
+    getCommand(command: string): Command | null {
         for (let cmd of this.walkCommands()) {
             if (cmd.match(command)) return cmd;
         }
+        return null;
     }
     /**
      * Adds command to internal command list
@@ -187,6 +206,14 @@ class Bot extends Client {
     }
     setGlobalCheck(check?: Check) {
         this.globalCheck = check;
+    }
+    async addSlashCommand(data: ApplicationCommandData, callback: SlashCommandFunction) {
+        const command = await this.application.commands.create(data);
+        this.slashCommands[data.name] = {
+            command,
+            callback
+        };
+        return command;
     }
 }
 
